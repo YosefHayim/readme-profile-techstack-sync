@@ -46,21 +46,25 @@ jobs:
           jq -c '.[] | select(.isFork | not)' repos.json | while read -r repo; do
             NAME="$(echo "${repo}" | jq -r '.name')"
             SSH_URL="$(echo "${repo}" | jq -r '.sshUrl')"
+            HTTPS_URL="https://github.com/${OWNER}/${NAME}.git"
             PRIVATE="$(echo "${repo}" | jq -r '.isPrivate')"
 
             REPO_DIR="${TMP_DIR}/${NAME}"
             echo "Cloning and analyzing ${NAME}..."
 
             git clone --depth=1 "${SSH_URL}" "${REPO_DIR}" >/dev/null 2>&1 || {
-              echo "Clone failed for ${NAME}, skipping."
-              continue
+              echo "Clone failed for ${NAME} (SSH_URL: ${SSH_URL}), skipping."
+              git clone --depth=1 "${HTTPS_URL}" "${REPO_DIR}" >/dev/null 2>&1 || {
+                echo "Clone failed for ${NAME} (HTTPS_URL: ${HTTPS_URL}), skipping."
+                continue
+              }
             }
 
-            # Run stack-analyser CLI; output JSON to file
-            if ! stack-analyser "${REPO_DIR}" --output="${REPO_DIR}/stack.json" >/dev/null 2>&1; then
+            # Run stack-analyser CLI; output JSON to file using npx
+            npx @specfy/stack-analyser "${REPO_DIR}" --output="${REPO_DIR}/stack.json" >/dev/null 2>&1 || {
               echo "stack-analyser failed for ${NAME}, skipping."
               continue
-            fi
+            }
 
             if [ ! -f "${REPO_DIR}/stack.json" ]; then
               echo "No stack.json for ${NAME}, skipping."
