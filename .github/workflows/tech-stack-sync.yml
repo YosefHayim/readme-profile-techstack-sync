@@ -1,0 +1,210 @@
+name: Tech Stack Sync
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # weekly
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      TARGET_OWNER: ${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TECHSTACK_SECTION_MARKER: "TECHSTACK"
+
+    steps:
+      - name: Checkout profile repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install stack-analyser
+        run: npm install -g @specfy/stack-analyser jq
+
+      - name: Collect stacks and update README
+        run: |
+          set -euo pipefail
+
+          OWNER="${TARGET_OWNER}"
+
+          echo "Listing repos for ${OWNER}..."
+          gh repo list "${OWNER}" --json name,sshUrl,isPrivate,isFork --limit 100 > repos.json
+
+          TMP_DIR="$(mktemp -d)"
+          STACKS_JSON="${TMP_DIR}/stacks.jsonl"
+
+          # Initialize JSONL file
+          : > "${STACKS_JSON}"
+
+          jq -c '.[] | select(.isFork | not)' repos.json | while read -r repo; do
+            NAME="$(echo "${repo}" | jq -r '.name')"
+            SSH_URL="$(echo "${repo}" | jq -r '.sshUrl')"
+            PRIVATE="$(echo "${repo}" | jq -r '.isPrivate')"
+
+            REPO_DIR="${TMP_DIR}/${NAME}"
+            echo "Cloning and analyzing ${NAME}..."
+
+            git clone --depth=1 "${SSH_URL}" "${REPO_DIR}" >/dev/null 2>&1 || {
+              echo "Clone failed for ${NAME}, skipping."
+              continue
+            }
+
+            # Run stack-analyser CLI; output JSON to file
+            if ! stack-analyser "${REPO_DIR}" --output="${REPO_DIR}/stack.json" >/dev/null 2>&1; then
+              echo "stack-analyser failed for ${NAME}, skipping."
+              continue
+            fi
+
+            if [ ! -f "${REPO_DIR}/stack.json" ]; then
+              echo "No stack.json for ${NAME}, skipping."
+              continue
+            fi
+
+            # Flatten nested structure with jq only; keep category + name
+            # Expected CLI output is AnalyserJson; adapt fields if they change
+            jq -c --arg name "${NAME}" \
+                  --arg url "https://github.com/${OWNER}/${NAME}" \
+                  --arg private "${PRIVATE}" '
+              {
+                repo: {
+                  name: $name,
+                  url: $url,
+                  private: ($private == "true")
+                },
+                technologies: (
+                  .flat // .nodes // [] # try to be defensive about structure
+                  | map({
+                      id: (.id // .slug // .name),
+                      name: .name,
+                      category: .category
+                    })
+                )
+              }
+            ' "${REPO_DIR}/stack.json" >> "${STACKS_JSON}" || {
+              echo "jq flatten failed for ${NAME}, skipping."
+            }
+          done
+
+          # Merge JSONL into a single JSON structure
+          if [ ! -s "${STACKS_JSON}" ]; then
+            echo "No stacks collected; aborting update."
+            exit 0
+          fi
+
+          jq -s --arg owner "${OWNER}" --arg now "$(date -u +%FT%TZ)" '
+            {
+              owner: $owner,
+              generatedAt: $now,
+              repos: .
+            }
+          ' "${STACKS_JSON}" > stacks.json
+
+          echo "Stacks aggregated into stacks.json."
+
+          # Render README section from stacks.json
+          README="README.md"
+          if ! grep -q "<!-- ${TECHSTACK_SECTION_MARKER}:START -->" "${README}" || \
+             ! grep -q "<!-- ${TECHSTACK_SECTION_MARKER}:END -->" "${README}"; then
+            echo "Markers not found in README.md"
+            exit 1
+          fi
+
+          # Build section in a temp file
+          SECTION_FILE="${TMP_DIR}/section.md"
+
+          OWNER_NAME="$(jq -r '.owner' stacks.json)"
+          GENERATED_AT="$(jq -r '.generatedAt' stacks.json)"
+
+          {
+            echo "### Tech Stack overview for \`${OWNER_NAME}\`"
+            echo
+            echo "Last updated: \`${GENERATED_AT}\`"
+            echo
+
+            echo "#### Aggregated by category"
+            echo
+
+            # Count per category+name
+            jq -r '
+              .repos[]
+              | .technologies[]
+              | "\(.category)|\(.name)"
+            ' stacks.json \
+            | sort \
+            | uniq -c \
+            | awk '{
+                count=$1; sub(/^ *[0-9]+ +/,"");
+                split($0, parts, "|");
+                category=parts[1]; name=parts[2];
+                printf("%s\t%s\t%s\n", category, name, count);
+              }' \
+            | sort -k1,1 -k3,3nr -k2,2 \
+            | awk '
+              BEGIN { last_cat="" }
+              {
+                cat=$1; name=$2; count=$3;
+                if (cat != last_cat) {
+                  if (last_cat != "") print "";
+                  printf("#### %s\n\n", cat);
+                  last_cat=cat;
+                }
+                printf("- %s (_%s repos_)\n", name, count);
+              }
+            '
+            echo
+
+            echo "#### Per-repository summary"
+            echo
+            echo "| Repository | Visible | Top technologies |"
+            echo "| ---------- | ------- | ---------------- |"
+
+            jq -r '
+              .repos[]
+              | {
+                  name: .repo.name,
+                  url: .repo.url,
+                  private: .repo.private,
+                  techs: (
+                    .technologies
+                    | map(.name)
+                    | unique
+                    | .[0:8]
+                  )
+                }
+              | "| [\(.name)](\(.url)) | \(.private | if . then \"Private\" else \"Public\" end) | \(.techs | join(\", \") // \"None\") |"
+            ' stacks.json
+          } > "${SECTION_FILE}"
+
+          # Replace section between markers
+          START_MARK="<!-- ${TECHSTACK_SECTION_MARKER}:START -->"
+          END_MARK="<!-- ${TECHSTACK_SECTION_MARKER}:END -->"
+
+          # Split README
+          BEFORE="$(awk -v m="$START_MARK" '{
+            print; if ($0 ~ m) { exit }
+          }' "${README}")"
+
+          AFTER="$(awk -v m="$END_MARK" 'f{print} $0 ~ m{f=1}' "${README}")"
+
+          {
+            printf "%s\n\n" "${BEFORE}"
+            cat "${SECTION_FILE}"
+            printf "\n%s\n" "${AFTER}"
+          } > "${README}.new"
+
+          mv "${README}.new" "${README}"
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md stacks.json || true
+          git commit -m "chore: update tech stack" || echo "No changes"
+          git push
