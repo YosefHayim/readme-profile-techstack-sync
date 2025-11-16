@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Portfolio</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Loading Experience...</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="logo">Portfolio</div>
+        <ul class="nav-links">
+            <li><a href="#home" data-section="0">Home</a></li>
+            <li><a href="#about" data-section="1">About</a></li>
+            <li><a href="#projects" data-section="2">Projects</a></li>
+            <li><a href="#skills" data-section="3">Skills</a></li>
+            <li><a href="#contact" data-section="4">Contact</a></li>
+        </ul>
+    </nav>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Content Overlays -->
+    <div class="content-sections">
+        <!-- Hero Section -->
+        <section class="content-section active" data-section="0">
+            <div class="hero-content">
+                <h1 class="glitch" data-text="Welcome">Welcome</h1>
+                <p class="subtitle">Interactive 3D Portfolio Experience</p>
+                <button class="cta-button">Explore</button>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="content-section" data-section="1">
+            <div class="section-content">
+                <h2>About Me</h2>
+                <p>Passionate developer creating immersive web experiences with cutting-edge technologies.</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number">5+</span>
+                        <span class="stat-label">Years Experience</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">50+</span>
+                        <span class="stat-label">Projects Completed</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">100+</span>
+                        <span class="stat-label">Happy Clients</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section class="content-section" data-section="2">
+            <div class="section-content">
+                <h2>Projects</h2>
+                <div class="projects-grid">
+                    <div class="project-card">
+                        <h3>3D Web Experience</h3>
+                        <p>Immersive WebGL application</p>
+                        <div class="tech-stack">Three.js, GSAP, WebGL</div>
+                    </div>
+                    <div class="project-card">
+                        <h3>E-Commerce Platform</h3>
+                        <p>Full-stack online store</p>
+                        <div class="tech-stack">React, Node.js, MongoDB</div>
+                    </div>
+                    <div class="project-card">
+                        <h3>AI Dashboard</h3>
+                        <p>Data visualization tool</p>
+                        <div class="tech-stack">Vue.js, D3.js, Python</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skills Section -->
+        <section class="content-section" data-section="3">
+            <div class="section-content">
+                <h2>Skills</h2>
+                <div class="skills-container">
+                    <div class="skill-category">
+                        <h3>Frontend</h3>
+                        <ul>
+                            <li>Three.js / WebGL</li>
+                            <li>React / Vue / Angular</li>
+                            <li>HTML5 / CSS3 / JavaScript</li>
+                            <li>TypeScript</li>
+                        </ul>
+                    </div>
+                    <div class="skill-category">
+                        <h3>Backend</h3>
+                        <ul>
+                            <li>Node.js / Express</li>
+                            <li>Python / Django</li>
+                            <li>PostgreSQL / MongoDB</li>
+                            <li>REST APIs / GraphQL</li>
+                        </ul>
+                    </div>
+                    <div class="skill-category">
+                        <h3>Tools</h3>
+                        <ul>
+                            <li>Git / GitHub</li>
+                            <li>Docker</li>
+                            <li>Blender / 3D Modeling</li>
+                            <li>CI/CD</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="content-section" data-section="4">
+            <div class="section-content">
+                <h2>Get In Touch</h2>
+                <form class="contact-form">
+                    <div class="form-group">
+                        <input type="text" placeholder="Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" placeholder="Your Email" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea placeholder="Your Message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-button">Send Message</button>
+                </form>
+                <div class="social-links">
+                    <a href="#" aria-label="GitHub">GitHub</a>
+                    <a href="#" aria-label="LinkedIn">LinkedIn</a>
+                    <a href="#" aria-label="Twitter">Twitter</a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Performance Monitor (dev only) -->
+    <div id="stats"></div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
