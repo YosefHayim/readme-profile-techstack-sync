@@ -54,22 +54,14 @@ jobs:
 
             # Try SSH first, then HTTPS (no auth; works only for public repos)
             git clone --depth=1 "${SSH_URL}" "${REPO_DIR}" >/dev/null 2>&1 || {
-<<<<<<< HEAD
               echo "Clone failed for ${NAME} (SSH_URL: ${SSH_URL}), trying HTTPS."
-=======
-              echo "Clone failed for ${NAME} (SSH_URL: ${SSH_URL}), skipping."
->>>>>>> 655dad9733dc0b2b52deb35d8b1fd130d8d3fa65
               git clone --depth=1 "${HTTPS_URL}" "${REPO_DIR}" >/dev/null 2>&1 || {
                 echo "Clone failed for ${NAME} (HTTPS_URL: ${HTTPS_URL}), skipping."
                 continue
               }
             }
 
-<<<<<<< HEAD
             # Run stack-analyser CLI; output JSON to file
-=======
-            # Run stack-analyser CLI; output JSON to file using npx
->>>>>>> 655dad9733dc0b2b52deb35d8b1fd130d8d3fa65
             npx @specfy/stack-analyser "${REPO_DIR}" --output="${REPO_DIR}/stack.json" >/dev/null 2>&1 || {
               echo "stack-analyser failed for ${NAME}, skipping."
               continue
