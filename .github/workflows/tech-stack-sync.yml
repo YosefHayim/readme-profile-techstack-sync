@@ -70,7 +70,7 @@ jobs:
             if [ ! -f "${REPO_DIR}/stack.json" ]; then
               echo "No stack.json for ${NAME}, skipping."
               continue
-            }
+            fi
 
             # Flatten nested structure with jq only; keep category + name
             jq -c --arg name "${NAME}" \
