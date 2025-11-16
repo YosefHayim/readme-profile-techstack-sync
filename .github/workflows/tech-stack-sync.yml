@@ -38,7 +38,7 @@ jobs:
           gh repo list "${OWNER}" --json name,sshUrl,isPrivate,isFork --limit 100 > repos.json
 
           TMP_DIR="$(mktemp -d)"
-          STACKS_JSON="${TMP_DIR}/stacks.jsonl"
+          STACKS_JSON="${TMP_DIR}/stacks.jsonl}"
 
           # Initialize JSONL file
           : > "${STACKS_JSON}"
